@@ -1,0 +1,8 @@
+2020
+dist
+node_modules
+app/vendor
+package-lock.json
+package.json
+webpack.config.js
+README.md

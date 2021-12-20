@@ -1,0 +1,76 @@
+include:
+  - https://docker-local.artifactory.local/artifactory/binary-local/scripts/ext_deploy.yml
+
+variables:
+  # Main variables
+  PHP_FPM_DOCKERFILE: Dockerfile.php-fpm
+  NGINX_DOCKERFILE: Dockerfile.nginx
+  # Dev
+  ARTIFACTORY_URL: docker-local.artifactory.local
+  PHP_FPM_DEV_IMAGE_NAME: ${ARTIFACTORY_URL}/bitrix/licenses/php-fpm:dev
+  NGINX_DEV_IMAGE_NAME: ${ARTIFACTORY_URL}/bitrix/licenses/nginx:dev
+  # PROD
+  ARTIFACTORY_EIP_URL: docker-local.artifactory.eip.local
+  PHP_FPM_PROD_IMAGE_NAME: ${ARTIFACTORY_EIP_URL}/bitrix/licenses/php-fpm:prod
+  NGINX_PROD_IMAGE_NAME: ${ARTIFACTORY_EIP_URL}/bitrix/licenses/nginx:prod
+
+stages:
+  - build_php_dev
+  - build_nginx_dev
+  - deploy
+  - build_php_prod
+  - build_nginx_prod
+
+#Build and Deploy to Dev
+build_php_dev:
+  image: docker-local.artifactory.local/common/docker:stable
+  stage: build_php_dev
+  script:
+    - docker login -u $ARTIFACTORY_USER -p $ARTIFACTORY_PASSWORD ${ARTIFACTORY_URL}
+    - docker build --pull --file ${PHP_FPM_DOCKERFILE} --force-rm -t ${PHP_FPM_DEV_IMAGE_NAME} .
+    - docker push ${PHP_FPM_DEV_IMAGE_NAME}
+    - docker image rm ${PHP_FPM_DEV_IMAGE_NAME}
+  only:
+    - develop
+
+build_nginx_dev:
+  image: docker-local.artifactory.local/common/docker:stable
+  stage: build_nginx_dev
+  script:
+    - docker login -u $ARTIFACTORY_USER -p $ARTIFACTORY_PASSWORD ${ARTIFACTORY_URL}
+    - docker build --pull --file ${NGINX_DOCKERFILE} --force-rm -t ${NGINX_DEV_IMAGE_NAME} .
+    - docker push ${NGINX_DEV_IMAGE_NAME}
+    - docker image rm ${NGINX_DEV_IMAGE_NAME}
+  only:
+    - develop
+
+deploy:
+  variables:
+    SSH_KEY: $SSH_PRIVATE_KEY
+    ADDRESS: $DEPLOY_ADDRESS
+  extends: .deploy
+  only:
+    - develop
+
+# Build and Deploy to prod
+build_php_prod:
+  image: docker-local.artifactory.local/common/docker:stable
+  stage: build_php_prod
+  script:
+    - docker login -u $ARTIFACTORY_USER_PROD -p $ARTIFACTORY_PASSWORD_PROD ${ARTIFACTORY_EIP_URL}
+    - docker build --pull --file ${PHP_FPM_DOCKERFILE} --force-rm -t ${PHP_FPM_PROD_IMAGE_NAME} .
+    - docker push ${PHP_FPM_PROD_IMAGE_NAME}
+    - docker image rm ${PHP_FPM_PROD_IMAGE_NAME}
+  only:
+    - merge_requests
+
+build_nginx_prod:
+  image: docker-local.artifactory.local/common/docker:stable
+  stage: build_nginx_prod
+  script:
+    - docker login -u $ARTIFACTORY_USER_PROD -p $ARTIFACTORY_PASSWORD_PROD ${ARTIFACTORY_EIP_URL}
+    - docker build --pull --file ${NGINX_DOCKERFILE} --force-rm -t ${NGINX_PROD_IMAGE_NAME} .
+    - docker push ${NGINX_PROD_IMAGE_NAME}
+    - docker image rm ${NGINX_PROD_IMAGE_NAME}
+  only:
+    - merge_requests

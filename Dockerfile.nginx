@@ -1,0 +1,4 @@
+FROM docker-local.artifactory.local/common/nginx:stable-alpine
+
+COPY ./app/public /app/public
+COPY ./default.conf /etc/nginx/templates/default.conf.template

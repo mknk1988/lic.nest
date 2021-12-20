@@ -1,0 +1,57 @@
+version: "3.7"
+
+networks:
+  net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.254.0/27"
+
+services:
+  web:
+    image: docker-local.artifactory.agat.local/common/nginx:stable-alpine
+    container_name: nginx
+    networks:
+      - net
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+      - NGINX_ROOT_PATH=/app/public
+    volumes:
+      - ./app/public:/app/public:ro
+      - ./default.conf:/etc/nginx/templates/default.conf.template:ro
+  backend:
+    image: docker-local.artifactory.agat.local/bitrix/licenses.roscosmos.ru/php:8-fpm-dev
+    container_name: php-fpm
+    working_dir: /app/public
+    environment:
+      TZ: "Europe/Moscow"
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - net
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./app:/app:rw
+  db:
+    image: docker-local.artifactory.agat.local/common/mariadb:focal
+    environment:
+      TZ: "Europe/Moscow"
+      MYSQL_ROOT_PASSWORD: asdfh33*(@*sdf
+      MYSQL_ALLOW_EMPTY_PASSWORD: asdfh33*(@*sdf
+      MYSQL_RANDOM_ROOT_PASSWORD: asdfh33*(@*sdf
+      MYSQL_DATABASE: licenses_db
+      MYSQL_USER: licenses_user
+      MYSQL_PASSWORD: asdfh33*(@*sdf
+    container_name: db
+    networks:
+      - net
+    volumes:
+      - ./db/:/var/lib/mysql/
